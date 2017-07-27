@@ -1,0 +1,24 @@
+{
+  "name": "repos-statistic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "reload": "reload -b",
+    "start": "reload",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/77Vincent/repos-statistic.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/77Vincent/repos-statistic/issues"
+  },
+  "homepage": "https://github.com/77Vincent/repos-statistic#readme",
+  "devDependencies": {
+    "reload": "^2.1.0"
+  }
+}
