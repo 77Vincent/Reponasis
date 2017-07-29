@@ -6,6 +6,7 @@
   "scripts": {
     "reload": "reload -b",
     "start": "reload",
+    "rate": "curl -u 77Vincent https://api.github.com/rate_limit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

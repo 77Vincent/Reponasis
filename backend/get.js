@@ -14,7 +14,7 @@ let since = 0;
 let last = null;
 
 // SET GET PARAM "PATH" TO ALL PUBLIC REPOSITORIES
-lib.options.path = `/repositories?since=${since}&`;
+lib.options.path = `/repositories?since=${since}`;
 
 /**
  * GET ALL GITHUB PUBLIC REPOSITORIES 

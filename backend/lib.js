@@ -6,12 +6,16 @@
 
 "use strict";
 
+const auth = require("../auth.json");
+const info = `${auth.username}:${auth.password}`;
+
 module.exports = {
   options: {
     protocal: "https:",
     hostname: "api.github.com",
     headers: {
-      "user-agent": "Chrome/59.0.3071.115"
+      "user-agent": "Chrome/59.0.3071.115",
+      "authorization": `Basic ${new Buffer(info).toString("base64")}`
     }
   },
   path: {
