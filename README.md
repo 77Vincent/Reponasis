@@ -1,2 +1,2 @@
-# Reposis
-Analysis on github's repositories
+# Reponasis
+Github repositories analysis
