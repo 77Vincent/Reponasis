@@ -9,10 +9,12 @@
 const lib = require("./lib.js");
 const fs = require("fs");
 
+const savePath = "data/processedData.json";
+
 // READ LOCAL RAW DATA FILE
 fs.readFile("data/rawData.json", "utf8", function (err, data) {
   if (err) {
-    return lib.errorLog(err);
+    return console.error(err);
   }
 
   try {
@@ -23,19 +25,19 @@ fs.readFile("data/rawData.json", "utf8", function (err, data) {
       return {
         id: item.id,
         index: index,
-        name: item.name
+        name: item.full_name
       };
     });
 
-    fs.writeFile(lib.path.processedData, JSON.stringify(processedData), function (err) {
+    fs.writeFile(savePath, JSON.stringify(processedData), function (err) {
       if (err) {
-        return lib.errorLog(err);
+        return console.error(err);
       }
-      lib.successLog(`Raw data was successfully processed and saved to ${lib.path.processedData}!`);
+      console.log(`Raw data was successfully processed and saved to ${savePath}!`);
     });
 
 
   } catch (e) {
-    lib.errorLog(e.message);
+    console.error(e.message);
   }
 });

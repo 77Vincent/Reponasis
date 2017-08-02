@@ -7,25 +7,50 @@
 "use strict";
 
 const auth = require("../auth.json");
-const info = `${auth.username}:${auth.password}`;
+const https = require("https");
 
-module.exports = {
+const lib = {
+  /**
+   * USED AS REQUEST HEADER
+   */
   options: {
     protocal: "https:",
     hostname: "api.github.com",
     headers: {
       "user-agent": "Chrome/59.0.3071.115",
-      "authorization": `Basic ${new Buffer(info).toString("base64")}`
+      "authorization": `Basic ${new Buffer(`${auth.username}:${auth.password}`).toString("base64")}`
     }
   },
-  path: {
-    rawData: "data/rawData.json",
-    processedData: "data/processedData.json"
-  },
-  successLog: (message) => {
-    console.log("\x1b[32m", message);
-  },
-  errorLog: (message) => {
-    console.log("\x1b[31m", message);
+  /**
+   * MAKE GET REQUEST 
+   * @param {Function} CALLBACK FUNCTION
+   * @return {void}
+   */
+  get(callback) {
+    https.get(lib.options, function (res) {
+
+      if (res.statusCode !== 200) {
+        console.error(`${res.statusCode}: ${res.statusMessage}`);
+        res.resume();
+        return;
+      }
+
+      let rawData = [];
+
+      res.on("data", (chunk) => {
+        rawData.push(chunk);
+      });
+
+      res.on("end", () => {
+        callback(res, rawData.join(""));
+      });
+
+      res.setEncoding("utf8");
+
+    }).on("error", function (e) {
+      console.error(e.message);
+    });
   }
 };
+
+module.exports = lib;
