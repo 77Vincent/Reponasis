@@ -7,16 +7,19 @@
 "use strict";
 
 const lib = require("./lib.js");
-const lastIndex = require("../data/lastIndex.json");
+const last = require("../data/lastIndex.json");
 const fs = require("fs");
 
-let since = lastIndex ? lastIndex : 0;
-let last = null;
+
+let sinceIndex = last ? last : 0;
+let lastIndex = null;
 let isContinue = true;
 let final = [];
+let lastData = null;
+
 
 // Set path of request header 
-lib.options.path = `/repositories?since=${since}`;
+lib.options.path = `/repositories?since=${sinceIndex}`;
 
 /**
  * Create random integer among the given range inclusively
@@ -34,14 +37,14 @@ const getRandomInt = (min, max) => {
  */
 const save = () => {
   fs.writeFile("data/rawData.json", JSON.stringify(final), (err) => {
-    if (err) { return console.error(err); }
+    if (err) { throw err; }
 
     console.log(`Data was successfully saved to ${"data/rawData.json"}!`);
     console.timeEnd("Time cost");
 
     // Save the last repos' index
-    fs.writeFile("data/lastIndex.json", last, (err) => {
-      if (err) { return console.error(err); }
+    fs.writeFile("data/lastIndex.json", lastIndex, (err) => {
+      if (err) { throw err; }
       process.exit();
     });
   });
@@ -59,13 +62,13 @@ const createRawData = (res, data) => {
 
   let json = JSON.parse(data);
   final.push(...json);
-  last = json[json.length - 1].id;
+  lastIndex = json[json.length - 1].id;
 
-  if (last > since && res.headers["x-ratelimit-remaining"] > 1 && isContinue) {
-    // last += getRandomInt(1000, 2000);
-    since = last;
+  if (lastIndex > sinceIndex && res.headers["x-ratelimit-remaining"] > 1 && isContinue) {
+    lastIndex += getRandomInt(0, 0);
+    sinceIndex = lastIndex;
 
-    lib.options.path = `/repositories?since=${since}`;
+    lib.options.path = `/repositories?since=${sinceIndex}`;
     lib.get(createRawData);
   } else {
 
@@ -75,8 +78,12 @@ const createRawData = (res, data) => {
 };
 
 // Start running and counting time
-console.time("Time cost");
-lib.get(createRawData);
+fs.readFile("data/rawData.json", "utf8", (err, data) => {
+  console.time("Time cost");
+
+  lastData = data;
+  lib.get(createRawData);
+});
 
 process.on("SIGINT", function () {
   isContinue = false;
