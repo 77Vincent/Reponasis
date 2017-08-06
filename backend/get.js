@@ -7,19 +7,13 @@
 "use strict";
 
 const lib = require("./lib.js");
-const last = require("../data/lastIndex.json");
 const fs = require("fs");
 
-
-let sinceIndex = last ? last : 0;
-let lastIndex = null;
-let isContinue = true;
-let final = [];
-let lastData = null;
-
-
-// Set path of request header 
-lib.options.path = `/repositories?since=${sinceIndex}`;
+let isContinue = true; // If the next iteration continues
+let rawData = []; // Collect all chunks on response data
+let processedData = []; // Collection of all processed raw data
+let lastData; // Repos' data got the last time
+let lastIndex; // Repos' index reached last time
 
 /**
  * Create random integer among the given range inclusively
@@ -36,15 +30,22 @@ const getRandomInt = (min, max) => {
  * @return {void}
  */
 const save = () => {
-  fs.writeFile("data/rawData.json", JSON.stringify(final), (err) => {
-    if (err) { throw err; }
+  let toSave = JSON.parse(lastData);
+  toSave.push(...processedData);
 
-    console.log(`Data was successfully saved to ${"data/rawData.json"}!`);
+  fs.writeFile("data/processedData.json", JSON.stringify(toSave), (err) => {
+    if (err) {
+      throw err;
+    }
+
+    console.log(`Data was successfully processed and saved to data/processedData.json!`);
     console.timeEnd("Time cost");
 
     // Save the last repos' index
     fs.writeFile("data/lastIndex.json", lastIndex, (err) => {
-      if (err) { throw err; }
+      if (err) {
+        throw err;
+      }
       process.exit();
     });
   });
@@ -52,40 +53,75 @@ const save = () => {
 
 /**
  * Receive and save data to file 
- * @param {Object} response
- * @param {String} data got by response
+ * @param {Number} sinceIndex 
+ * @return {Function} callback function of http response on data
  */
-const createRawData = (res, data) => {
-  console.log(`${res.statusCode}: Data was successfully got from ${res.headers.server}!`);
-  console.log(`x-ratelimit-remaining: ${res.headers["x-ratelimit-remaining"]}/${res.headers["x-ratelimit-limit"]}`);
-  console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+const createRawData = (sinceIndex) => {
+  /**
+   * Callback function
+   * @param {Object} response
+   * @param {String} data
+   * @return {void}
+   */
+  return (res, data) => {
 
-  let json = JSON.parse(data);
-  final.push(...json);
-  lastIndex = json[json.length - 1].id;
+    if (!isContinue) return;
 
-  if (lastIndex > sinceIndex && res.headers["x-ratelimit-remaining"] > 1 && isContinue) {
-    lastIndex += getRandomInt(0, 0);
-    sinceIndex = lastIndex;
+    let json = JSON.parse(data);
+    rawData.push(...json);
+    lastIndex = json[json.length - 1].id;
 
-    lib.options.path = `/repositories?since=${sinceIndex}`;
-    lib.get(createRawData);
-  } else {
+    // Successful log messages
+    console.log(`${res.statusCode}: Data was successfully got from ${res.headers.server}!`);
+    console.log(`From repository ${sinceIndex + 1} to ${lastIndex}`);
+    console.log(`x-ratelimit-remaining: ${res.headers["x-ratelimit-remaining"]}/${res.headers["x-ratelimit-limit"]}`);
+    console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
-    // When hit the end, write file and save
-    save();
-  }
+    processedData = rawData.map((item, index) => {
+      return {
+        id: item.id,
+        index: index,
+        name: item.full_name
+      };
+    });
+
+    if (lastIndex > sinceIndex && res.headers["x-ratelimit-remaining"] > 1) {
+      lastIndex += getRandomInt(0, 0);
+      sinceIndex = lastIndex;
+
+      lib.options.path = `/repositories?since=${sinceIndex}`;
+      lib.get(createRawData(sinceIndex));
+    } else {
+
+      // When hit the end, write file and save
+      save();
+    }
+  };
 };
 
 // Start running and counting time
-fs.readFile("data/rawData.json", "utf8", (err, data) => {
+fs.readFile("data/processedData.json", "utf8", (err, data) => {
   console.time("Time cost");
 
-  lastData = data;
-  lib.get(createRawData);
+  lastData = err ? "[]" : data;
+
+  fs.readFile("data/lastIndex.json", "utf8", (err, data) => {
+
+    let sinceIndex;
+
+    if (err) {
+      sinceIndex = 0;
+    } else {
+      sinceIndex = parseInt(data);
+    }
+
+    lib.options.path = `/repositories?since=${sinceIndex}`;
+    lib.get(createRawData(sinceIndex));
+  });
 });
 
-process.on("SIGINT", function () {
+// Hanlde interruption
+process.on("SIGINT", () => {
   isContinue = false;
   save();
 });
