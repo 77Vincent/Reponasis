@@ -52,6 +52,15 @@ const save = () => {
 };
 
 /**
+ * Specify git api 
+ * @param {Number} sinceInt 
+ * @return {String} specific api to use
+ */
+const api = (sinceInt) => {
+  return `/users?per_page=100&since=${sinceInt}`;
+};
+
+/**
  * Receive and save data to file 
  * @param {Number} sinceIndex 
  * @return {Function} callback function of http response on data
@@ -81,7 +90,7 @@ const createRawData = (sinceIndex) => {
       return {
         id: item.id,
         index: index,
-        name: item.full_name
+        login: item.login 
       };
     });
 
@@ -89,7 +98,7 @@ const createRawData = (sinceIndex) => {
       lastIndex += getRandomInt(0, 0);
       sinceIndex = lastIndex;
 
-      lib.options.path = `/repositories?since=${sinceIndex}`;
+      lib.options.path = api(sinceIndex);
       lib.get(createRawData(sinceIndex));
     } else {
 
@@ -115,7 +124,7 @@ fs.readFile("data/processedData.json", "utf8", (err, data) => {
       sinceIndex = parseInt(data);
     }
 
-    lib.options.path = `/repositories?since=${sinceIndex}`;
+    lib.options.path = api(sinceIndex);
     lib.get(createRawData(sinceIndex));
   });
 });
